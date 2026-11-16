@@ -1,6 +1,6 @@
 # SC26 Beyond Code Pairs — OpenCode-powered End-to-End Hands-on
 
-**One command:** `/bcp-demo` in [OpenCode](https://opencode.ai/), run at the ROOT of `beyond-code-pairs-translation` after adding this folder + `.opencode/` definitions.
+**One command:** `/bcp-demo` in [OpenCode](https://opencode.ai/), run from the repository's `SC26` directory, where this tutorial and its `.opencode/` definitions live.
 
 **Goal:** watch a real Questioner propose extra unit tests, a real Solver translate a small Fortran stencil into C++, and an independent compiler/test runner decide whether code is numerically correct. On failure, Questioner uses the real error and Solver repairs; all roles and tool outputs are preserved as actual file artifacts.
 
@@ -14,12 +14,9 @@ This is a **minimal classroom adaptation** of the two-phase approach in the pape
 
 ## Start from an existing repository clone
 
-Install the add-on ZIP (created alongside these instructions) **into the repository root**, preserving `.opencode/` and `tutorial_demo/` directory names.
-
 ```bash
-cd beyond-code-pairs-translation
-# unzip SC26_OpenCode_Beyond_Code_Pairs_Addon.zip  (if the ZIP is here)
-# or apply the companion .patch with git apply
+git clone https://github.com/thelechen/beyond-code-pairs-translation.git
+cd beyond-code-pairs-translation/SC26
 opencode
 ```
 
@@ -92,7 +89,16 @@ python3 -m unittest discover -s tutorial_demo/opencode_e2e/tests -v
 
 ## Reset / limitations
 
-The demo works in `runs/opencode_latest`. Running `/bcp-demo` again calls `init`, which clears old generated role and test files in this directory. Copy it somewhere else first if you want to keep previous transcripts. Use only the example's bundled Fortran input; do not let arbitrary downloaded projects run in this demo without proper sandboxing. The numeric tests are concrete checks, not a formal semantic-equivalence proof.
+The demo works in `runs/opencode_latest`. To discard a previous run and start clean, exit OpenCode and run the following from the `SC26` directory:
+
+```bash
+make clean
+opencode
+```
+
+`make clean` deletes only `runs/opencode_latest` and local Python caches. It preserves the exercise source, fixtures, harness, tests, `.opencode/` configuration, documentation, and Makefile. Copy the run directory somewhere else first if you want to keep a previous transcript. Running `/bcp-demo` without cleaning also calls `init`, which resets the default run directory.
+
+Use only the example's bundled Fortran input; do not let arbitrary downloaded projects run in this demo without proper sandboxing. The numeric tests are concrete checks, not a formal semantic-equivalence proof.
 
 Source paper: [Beyond Code Pairs — ACL 2026](https://aclanthology.org/2026.acl-long.1557/). This add-on does not modify the research pipeline under `src/`.
 
