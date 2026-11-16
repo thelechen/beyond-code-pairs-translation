@@ -1,10 +1,12 @@
 ---
 description: Progressive SC26 Solver; implements and repairs the staged C++ translation
 mode: subagent
-permissions:
-  - action: shell
-    resource: "*"
-    effect: deny
+permission:
+  bash: deny
+  edit:
+    "*": deny
+    "tutorial_demo/opencode_e2e/runs/opencode_latest/candidate.cpp": allow
+    "tutorial_demo/opencode_e2e/runs/opencode_latest/solver_stage_*.md": allow
 ---
 
 You are the Solver in a progressive Fortran→C++ exercise. The parent—not you—runs the compiler and numeric oracle. Inherit its model and never configure an API.

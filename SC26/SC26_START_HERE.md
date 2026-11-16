@@ -4,9 +4,10 @@
 2. Confirm Python, `gfortran`, `g++`, and OpenCode are installed.
 3. Start `opencode` and select the model you want attendees to use.
 4. Enter **`/bcp-demo`**.
-5. Watch three required gates: one 2-D step, multi-step double buffering, then model-generated adversarial regression.
-6. Read `tutorial_demo/opencode_e2e/runs/opencode_latest/transcript.md` and the three `gate_XX_attempt_YY.json` reports.
-7. Optional after Gate 3 passes: enter **`/bcp-repair`** for a clearly labelled instructor-injected stale-buffer bug and real model-driven repair.
+5. Confirm OpenCode launches `bcp-questioner` and `bcp-solver` as child sessions; the read-only `bcp-orchestrator` must stop instead of writing their artifacts itself.
+6. Watch three required gates: one 2-D step, multi-step double buffering, then model-generated adversarial regression.
+7. Read `tutorial_demo/opencode_e2e/runs/opencode_latest/transcript.md` and the three `gate_XX_attempt_YY.json` reports.
+8. Optional after Gate 3 passes: enter **`/bcp-repair`** for a clearly labelled instructor-injected stale-buffer bug and real model-driven repair.
 
 The exercise does not set a model or API endpoint. See `tutorial_demo/opencode_e2e/README.md` for signatures, artifacts, evidence interpretation, and safety notes.
 

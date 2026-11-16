@@ -30,6 +30,16 @@ Then enter:
 
 The command inherits the model you selected and orchestrates all three gates. It never fabricates a model error. If a gate fails, Questioner reads the exact report and Solver gets one evidence-based repair attempt before the exercise stops.
 
+### Strict role isolation
+
+`/bcp-demo` runs under the dedicated `bcp-orchestrator` primary agent, not the general `build` agent. OpenCode permissions enforce these boundaries:
+
+- `bcp-orchestrator` may launch only `bcp-questioner` and `bcp-solver`, run the bundled harness, and read results. It cannot edit any exercise file.
+- `bcp-questioner` cannot run shell commands and may edit only `questioner_*` artifacts in the active run directory.
+- `bcp-solver` cannot run shell commands and may edit only `candidate.cpp` and `solver_stage_*.md` in the active run directory.
+
+If either child agent is unavailable, denied, fails, or omits a required artifact, the experiment stops. The orchestrator is explicitly forbidden—and technically unable—to replace the missing role. Seeing the agents in OpenCode's `@` menu is not sufficient; the run summary should show actual child-agent launches rather than a parent-generated fallback.
+
 ## Read the result
 
 Generated evidence is under `tutorial_demo/opencode_e2e/runs/opencode_latest/`:

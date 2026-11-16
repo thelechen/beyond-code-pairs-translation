@@ -1,9 +1,9 @@
 ---
 description: Optional labelled stale-buffer failure and evidence-based repair
-agent: build
+agent: bcp-orchestrator
 ---
 
-Continue a completed `/bcp-demo` with the current model. Never present the injected error as a model mistake.
+Continue a completed `/bcp-demo` with the current model. Never present the injected error as a model mistake. Use only the callable child subagents `bcp-questioner` and `bcp-solver` for role artifacts. If either invocation fails or is unavailable, stop; the orchestrator must never write or repair their files itself.
 
 1. Run `python3 tutorial_demo/opencode_e2e/harness.py status`; stop unless Gate 3 is PASS.
 2. Run `python3 tutorial_demo/opencode_e2e/harness.py inject`. This saves the verified candidate and installs an explicitly labelled stale double-buffer fixture.
