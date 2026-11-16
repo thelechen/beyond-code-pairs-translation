@@ -1,24 +1,20 @@
-# SC26 OpenCode Hands-on — 2-minute setup
+# SC26 OpenCode Hands-on — Progressive 2-D translation
 
-This add-on is designed for Le Chen's **Beyond Code Pairs** tutorial exercise.
-It does not change `src/agent.py` or training/data files in the original repository.
+1. Clone `thelechen/beyond-code-pairs-translation` and enter `SC26`.
+2. Confirm Python, `gfortran`, `g++`, and OpenCode are installed.
+3. Start `opencode` and select the model you want attendees to use.
+4. Enter **`/bcp-demo`**.
+5. Watch three required gates: one 2-D step, multi-step double buffering, then model-generated adversarial regression.
+6. Read `tutorial_demo/opencode_e2e/runs/opencode_latest/transcript.md` and the three `gate_XX_attempt_YY.json` reports.
+7. Optional after Gate 3 passes: enter **`/bcp-repair`** for a clearly labelled instructor-injected stale-buffer bug and real model-driven repair.
 
-1. Clone `thelechen/beyond-code-pairs-translation` and enter its `SC26` directory (keep the hidden `.opencode` directory).
-2. Install Python, `gfortran`, `g++`; OpenCode and the selected model are assumed ready.
-3. In the `SC26` directory, run `opencode`.
-4. Inside OpenCode, enter **`/bcp-demo`**.
-5. Inspect `tutorial_demo/opencode_e2e/runs/opencode_latest/transcript.md` and `events.jsonl`.
-6. Optional, after a pass: **`/bcp-repair`** for a clearly-labelled instructor-injected error and actual Questioner–Solver repair.
-
-Read `tutorial_demo/opencode_e2e/README.md` for prerequisites, evidence provenance, safety, and troubleshooting. No model or API endpoint is hardcoded.
+The exercise does not set a model or API endpoint. See `tutorial_demo/opencode_e2e/README.md` for signatures, artifacts, evidence interpretation, and safety notes.
 
 ## Start a fresh run
-
-From the `SC26` directory:
 
 ```bash
 make clean
 opencode
 ```
 
-`make clean` removes only generated files under this exercise's run directory and local Python caches. It preserves source files, fixtures, tests, `.opencode/`, documentation, and the Makefile.
+`make clean` removes only generated run files and Python caches. It preserves all exercise sources, fixtures, tests, OpenCode definitions, documentation, and the Makefile.

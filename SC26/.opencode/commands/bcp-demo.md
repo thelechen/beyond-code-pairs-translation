@@ -1,20 +1,18 @@
 ---
-description: SC26 end-to-end Fortran→C++ Questioner–Solver demo with real compiler and numerical feedback
+description: SC26 progressive 2-D Fortran→C++ Questioner–Solver experiment
 agent: build
 ---
 
-Run a COMPLETE Beyond Code Pairs SC26 hands-on experiment from a supplied Fortran 1-D stencil to verified C++ using my CURRENT OpenCode model. Keep all activity within `tutorial_demo/opencode_e2e/` and its `runs/opencode_latest` directory. Do not configure or override models and do not use OpenAI SDK/API calls. Use OpenCode subagents `bcp-questioner` and `bcp-solver` for ALL LLM-generated dialogue/code; do not impersonate them yourself.
+Run the COMPLETE three-gate Beyond Code Pairs exercise with the CURRENT OpenCode model. Work only in `tutorial_demo/opencode_e2e/` and `runs/opencode_latest/`. Never set a model or call an external model API. Use `bcp-questioner` and `bcp-solver` for every model-generated plan, candidate, and repair; do not impersonate either role.
 
-Do this STEP BY STEP, always waiting for subagent completion and checking files before continuing:
+1. Run `python3 tutorial_demo/opencode_e2e/harness.py init`. Stop if the trusted Fortran/Python cross-check fails.
 
-1. Run `python3 tutorial_demo/opencode_e2e/harness.py init`. This compiles the trusted Fortran reference and verifies six fixed numerical input cases. Stop on failure and explain prerequisites.
-2. Launch **bcp-questioner** subagent: ask it to inspect the Fortran code, write `tutorial_demo/opencode_e2e/runs/opencode_latest/questioner_plan.md` and `questioner_cases.json` (two *new, model-generated* test vectors), according to its role instructions. Wait until both files exist. Run `python3 tutorial_demo/opencode_e2e/harness.py check-tests`. If invalid, ask Questioner to fix once. DO NOT substitute scripted tests without telling user.
-3. Launch **bcp-solver** subagent: ask it to translate the source with the Questioner plan into `runs/opencode_latest/candidate.cpp`, and to write `solver_01.md`. Wait until these files exist.
-4. Run `python3 tutorial_demo/opencode_e2e/harness.py verify`. The harness compiles C++ and Fortran and numerically compares each output. It writes `test_attempt_01.json` and an archived `candidate_attempt_01.cpp`. Do not treat a nonzero exit code as a shell-tool failure that prevents reading its report; it is the intended verification signal.
-5. If FAIL, loop up to **two repairs**: launch bcp-questioner to write `questioner_feedback_XX.md` based on EXACT failed report/test outputs; then launch bcp-solver to revise `candidate.cpp` and write `solver_YY.md`. Call `verify` again. STOP on PASS or two repairs. For genuinely failed compile or numerical tests, NEVER claim success.
-6. Run `python3 tutorial_demo/opencode_e2e/harness.py transcript` whether PASS or FAIL. This creates `transcript.md` and `events.jsonl`, with real Questioner/Solver file artifacts and captured tool results. Summarize final status, attempt count, test case names, paths to logs, and the actual failure/repair loop if any.
-7. If first attempt was already correct, explain that this is GOOD; offer to run `/bcp-repair` to get a **separately labelled, instructor-injected** failure and actual model-driven repair. Do not silently introduce a bug in this main command.
+2. **Gate 1 — one heat step.** Ask `bcp-questioner` for Stage 1. It must write `questioner_stage_01.md`. Then ask `bcp-solver` for Stage 1; it writes `candidate.cpp` containing `heat_step_2d` and `solver_stage_01.md`. Run `python3 tutorial_demo/opencode_e2e/harness.py verify --stage 1`. On failure, let Questioner write `questioner_feedback_gate_01_attempt_XX.md` from the exact report, let Solver repair, and verify once more. Stop the experiment if the retry fails.
 
-This exercise is a **small teaching adaptation** of `src/agent.py`: a trusted Fortran driver and independent test oracle are supplied, Questioner generates additional tests and diagnostic requests, and Solver makes the translation. Do not say that it reproduces the paper's full data-generation pipeline.
+3. **Gate 2 — multiple steps.** Only after Gate 1 passes, ask Questioner for Stage 2 using the Gate 1 evidence; it writes `questioner_stage_02.md`. Ask Solver to extend the same `candidate.cpp` with `heat_solve_2d`, double buffering, zero-step behavior, boundary preservation, and final-step `last_max_delta`; it writes `solver_stage_02.md`. Run `verify --stage 2`. Allow one evidence-based Questioner/Solver repair if needed; stop if it still fails.
 
-Practical safety: only compile toy code from this trusted local example, within this working directory; OpenCode-generated code is untrusted and must not run in a sensitive environment. The example harness is NOT an OS sandbox.
+4. **Gate 3 — adversarial regression.** Only after Gate 2 passes, ask Questioner for Stage 3. It writes `questioner_stage_03.md` and exactly two new cases in `questioner_cases.json`, including a rectangular grid and odd/even step counts. Run `python3 tutorial_demo/opencode_e2e/harness.py check-tests`; ask it to correct invalid JSON once. Ask Solver to audit/revise the full candidate and write `solver_stage_03.md`. Run `verify --stage 3`; allow one genuine evidence-based repair if needed.
+
+5. Always run `python3 tutorial_demo/opencode_e2e/harness.py transcript`. Report each gate's outcome, attempts, failed case names, and transcript paths. A correct candidate may pass each gate on its first attempt, but it still completes three distinct Questioner–Solver–Verifier rounds.
+
+This is a teaching adaptation, not the paper's full data-generation pipeline. Compile only this bundled toy source; the harness is not an OS security sandbox.

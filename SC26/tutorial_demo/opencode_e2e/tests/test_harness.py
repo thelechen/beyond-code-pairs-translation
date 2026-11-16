@@ -10,64 +10,97 @@ sys.path.insert(0, str(BASE))
 import harness
 
 
-@unittest.skipUnless(shutil.which("gfortran") and shutil.which("g++"), "requires gfortran and g++")
+def generated_cases():
+    return {
+        "cases": [
+            {"name": "q_rect_odd", "nx": 4, "ny": 5, "steps": 3, "alpha": 0.13,
+             "grid": [90, 91, 92, 93, 80, -4, 6, 83, 70, 8, -9, 73,
+                      60, 3, 11, 63, 50, 51, 52, 53]},
+            {"name": "q_square_even", "nx": 5, "ny": 5, "steps": 4, "alpha": 0.21,
+             "grid": [1, 2, 3, 4, 5, 6, -7, 8, 9, 10, 11, 12, 40, -14, 15,
+                      16, 17, 18, 19, 20, 21, 22, 23, 24, 25]},
+        ]
+    }
+
+
+@unittest.skipUnless(shutil.which("gfortran") and shutil.which("g++"),
+                     "requires gfortran and g++")
 class HarnessTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.run = Path(self.temp.name)
         self.assertEqual(harness.init(self.run), 0)
-        harness.save_json(self.run / "questioner_cases.json", {
-            "cases": [
-                {"name": "q_spiky", "x": [-8, 5, 0, 5, -2, 99]},
-                {"name": "q_fractional", "x": [0.125, -2.5, 7.75, 4.5]}
-            ]})
-        (self.run / "questioner_plan.md").write_text("Questioner test plan (test fixture, no model)")
+
+    def add_questioner_artifacts(self):
+        for stage in range(1, 4):
+            (self.run / f"questioner_stage_{stage:02d}.md").write_text(
+                f"Questioner stage {stage} test fixture", encoding="utf-8")
+            (self.run / f"solver_stage_{stage:02d}.md").write_text(
+                f"Solver stage {stage} test fixture", encoding="utf-8")
+        harness.save_json(self.run / "questioner_cases.json", generated_cases())
+
+    def test_progressive_good_candidate_and_transcript(self):
+        self.add_questioner_artifacts()
         self.assertEqual(harness.check_tests(self.run), 0)
-
-    def test_good_bad_repaired_and_provenance(self):
         shutil.copyfile(BASE / "fixtures/candidate_good.cpp", self.run / "candidate.cpp")
-        (self.run / "solver_01.md").write_text("Solver test fixture, not actual model output")
-        self.assertEqual(harness.verify(self.run), 0)
-        self.assertTrue(harness.load_json(self.run / "test_attempt_01.json")["overall_pass"])
-        self.assertEqual(harness.inject(self.run), 0)
-        self.assertEqual(harness.verify(self.run), 1)
-        report = harness.load_json(self.run / "test_attempt_02.json")
-        self.assertTrue(any(not case["pass"] for case in report["cases"]))
-        self.assertTrue(harness.load_json(self.run / "injection.json")["NOT_LLM_ERROR"])
-        (self.run / "questioner_feedback_02.md").write_text("Instructor fixture uses x[i] instead of x[i+1]")
-        shutil.copyfile(BASE / "fixtures/candidate_good.cpp", self.run / "candidate.cpp")
-        (self.run / "solver_03.md").write_text("Solver test fixture repair, not actual model output")
-        self.assertEqual(harness.verify(self.run), 0)
+        self.assertEqual(harness.verify(self.run, 1), 0)
+        self.assertEqual(harness.verify(self.run, 2), 0)
+        self.assertEqual(harness.verify(self.run, 3), 0)
+        for stage in range(1, 4):
+            report = harness.load_json(self.run / f"gate_{stage:02d}_attempt_01.json")
+            self.assertTrue(report["overall_pass"])
+            self.assertEqual(report["gate"], stage)
         self.assertEqual(harness.transcript(self.run), 0)
-        trace = (self.run / "transcript.md").read_text()
-        self.assertIn("INSTRUCTOR-INJECTED buggy C++ fixture, attempt 2", trace)
-        self.assertIn("Targeted repair instruction before attempt 3", trace)
-        events = [json.loads(l) for l in (self.run / "events.jsonl").read_text().splitlines()]
-        self.assertTrue(any(e["role"] == "Questioner" for e in events))
-        self.assertTrue(any(e["role"] == "Solver" for e in events))
-        self.assertTrue(any(e["role"] == "Tool" for e in events))
-        self.assertTrue(any(e["role"] == "Instructor" for e in events))
+        transcript = (self.run / "transcript.md").read_text(encoding="utf-8")
+        self.assertIn("Gate 1 independent verification", transcript)
+        self.assertIn("Gate 3 generated cases", transcript)
 
-    def test_reference_and_invalid_questioner_cases(self):
-        self.assertTrue(harness.load_json(self.run / "reference_validation.json")["pass"])
-        harness.save_json(self.run / "questioner_cases.json", {"cases": [{"name":"bad", "x":[1, 2]}]})
+    def test_gate_order_is_enforced(self):
+        shutil.copyfile(BASE / "fixtures/candidate_good.cpp", self.run / "candidate.cpp")
+        self.assertEqual(harness.verify(self.run, 2), 2)
+        self.assertFalse(list(self.run.glob("gate_02_attempt_*.json")))
+
+    def test_invalid_questioner_cases_rejected(self):
+        bad = generated_cases()
+        bad["cases"][1]["steps"] = 3
+        harness.save_json(self.run / "questioner_cases.json", bad)
         self.assertEqual(harness.check_tests(self.run), 1)
 
-    def test_compilation_failure_captured_not_falsely_passed(self):
-        (self.run / "candidate.cpp").write_text("#include <vector>\nvoid wrong_symbol() {}\n")
-        self.assertEqual(harness.verify(self.run), 1)
-        r = harness.load_json(self.run / "test_attempt_01.json")
-        self.assertNotEqual(r["compile"]["exit_code"], 0)
-        self.assertFalse(r["overall_pass"])
-        self.assertIn("undefined reference", r["compile"]["stderr"])
+    def test_compilation_failure_is_captured(self):
+        (self.run / "candidate.cpp").write_text(
+            "#include <vector>\nvoid wrong_symbol() {}\n", encoding="utf-8")
+        self.assertEqual(harness.verify(self.run, 1), 1)
+        report = harness.load_json(self.run / "gate_01_attempt_01.json")
+        self.assertNotEqual(report["compile"]["exit_code"], 0)
+        self.assertTrue(report["compile"]["stderr"])
+        self.assertFalse(report["overall_pass"])
 
-    def test_init_resets_prior_role_files(self):
-        (self.run / "candidate.cpp").write_text("stale")
-        (self.run / "questioner_cases.json").write_text("stale")
-        (self.run / "questioner_feedback_01.md").write_text("stale")
+    def test_injected_bug_fails_then_repair_passes(self):
+        self.add_questioner_artifacts()
+        shutil.copyfile(BASE / "fixtures/candidate_good.cpp", self.run / "candidate.cpp")
+        for stage in range(1, 4):
+            self.assertEqual(harness.verify(self.run, stage), 0)
+        self.assertEqual(harness.inject(self.run), 0)
+        self.assertEqual(harness.verify(self.run, 3), 1)
+        failed = harness.load_json(self.run / "gate_03_attempt_02.json")
+        self.assertTrue(any(not item["pass"] for item in failed["cases"] if item["mode"] == 2))
+        (self.run / "questioner_feedback_gate_03_attempt_02.md").write_text(
+            "Instructor fixture returned the stale buffer.", encoding="utf-8")
+        shutil.copyfile(BASE / "fixtures/candidate_good.cpp", self.run / "candidate.cpp")
+        self.assertEqual(harness.verify(self.run, 3), 0)
+        self.assertEqual(harness.transcript(self.run), 0)
+        transcript = (self.run / "transcript.md").read_text(encoding="utf-8")
+        self.assertIn("INSTRUCTOR-INJECTED candidate", transcript)
+        events = [json.loads(line) for line in (self.run / "events.jsonl").read_text().splitlines()]
+        self.assertTrue(any(event["role"] == "Instructor" for event in events))
+
+    def test_init_resets_generated_files(self):
+        (self.run / "candidate.cpp").write_text("stale", encoding="utf-8")
+        (self.run / "questioner_cases.json").write_text("stale", encoding="utf-8")
+        (self.run / "gate_01_attempt_01.json").write_text("stale", encoding="utf-8")
         self.assertEqual(harness.init(self.run), 0)
-        for name in ("candidate.cpp", "questioner_cases.json", "questioner_feedback_01.md"):
+        for name in ("candidate.cpp", "questioner_cases.json", "gate_01_attempt_01.json"):
             self.assertFalse((self.run / name).exists())
 
 
